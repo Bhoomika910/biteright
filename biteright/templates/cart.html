@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>BiteRight — Cart</title>
+<link rel="stylesheet" href="/static/style.css"/>
+<style>
+.cart-layout { display:grid;grid-template-columns:1fr 360px;gap:28px;align-items:start; }
+.cart-item { background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;display:flex;gap:16px;align-items:center;transition:var(--transition); }
+.cart-item:hover { border-color:var(--border-hot); }
+.ci-emoji { width:56px;height:56px;background:var(--surface2);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.8rem;flex-shrink:0; }
+.ci-info  { flex:1;min-width:0; }
+.ci-name  { font-family:'Syne',sans-serif;font-weight:700;font-size:0.95rem;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.ci-rest  { font-size:0.78rem;color:var(--text2);margin-bottom:8px; }
+.ci-price { font-size:1rem;font-weight:700;color:var(--primary); }
+.qty-ctrl { display:flex;align-items:center;gap:10px; }
+.qty-btn  { width:30px;height:30px;border-radius:50%;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-size:1.1rem;font-weight:700;display:flex;align-items:center;justify-content:center;transition:var(--transition); }
+.qty-btn:hover { border-color:var(--primary);color:var(--primary);background:var(--primary-glow); }
+.qty-val  { font-weight:700;min-width:22px;text-align:center;font-size:0.95rem; }
+.remove-btn { background:none;border:none;color:var(--text3);cursor:pointer;font-size:1.2rem;padding:4px;transition:var(--transition);border-radius:6px; }
+.remove-btn:hover { color:#E74C3C;background:rgba(231,76,60,0.1); }
+.order-summary { background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:28px;position:sticky;top:80px; }
+.os-title { font-family:'Syne',sans-serif;font-weight:800;font-size:1.2rem;margin-bottom:20px; }
+.os-row   { display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);font-size:0.9rem;color:var(--text2); }
+.os-total     { font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;color:var(--text); }
+.os-total-val { font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;color:var(--primary); }
+.place-order-btn .shine { position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent);transform:translateX(-100%);animation:shine 2.5s infinite; }
+@keyframes shine { to{transform:translateX(200%)} }
+.place-order-btn { position:relative;overflow:hidden; }
+.success-overlay { position:fixed;inset:0;z-index:300;background:rgba(14,12,10,0.95);display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px; }
+.success-overlay.show { display:flex; }
+.success-icon { font-size:5rem;animation:pop 0.5s cubic-bezier(0.34,1.56,0.64,1); }
+@keyframes pop { from{transform:scale(0)} to{transform:scale(1)} }
+@media (max-width:900px) { .cart-layout{grid-template-columns:1fr} .order-summary{position:relative} }
+</style>
+</head>
+<body>
+<div id="nav-root"></div>
+
+<main class="page">
+  <div class="section-head mb-32 fade-up">
+    <div>
+      <div class="section-title">🛒 Your Cart</div>
+      <div class="section-sub" id="cartSubtitle">Loading…</div>
+    </div>
+    <button class="btn btn-ghost btn-sm" id="clearBtn">Clear cart</button>
+  </div>
+
+  <div id="emptyCart" class="hidden" style="text-align:center;padding:80px 20px">
+    <div style="font-size:4rem;margin-bottom:16px;opacity:.4">🛒</div>
+    <h2 style="font-family:'Syne',sans-serif;font-size:1.5rem;margin-bottom:8px">Your cart is empty</h2>
+    <p style="color:var(--text2);margin-bottom:24px">Add some delicious items to get started</p>
+    <a href="/restaurants.html" class="btn btn-primary btn-lg">Browse Restaurants →</a>
+  </div>
+
+  <div class="cart-layout" id="cartLayout">
+    <div id="cartItems" style="display:flex;flex-direction:column;gap:14px;"></div>
+    <div class="order-summary fade-up-d2">
+      <div class="os-title">Order Summary</div>
+      <div class="os-row"><span>Subtotal</span><span id="osSubtotal">₹0</span></div>
+      <div class="os-row"><span>Delivery fee</span><span style="color:#2ECC71">FREE</span></div>
+      <div class="os-row"><span>Taxes (5%)</span><span id="osTax">₹0</span></div>
+      <div class="os-row" style="border:none;padding-top:14px">
+        <span class="os-total">Total</span>
+        <span class="os-total-val" id="osTotal">₹0</span>
+      </div>
+      <button class="btn btn-primary btn-full btn-lg place-order-btn mt-16" id="placeOrderBtn">
+        <div class="shine"></div>
+        Place Order 🚀
+      </button>
+      <p style="text-align:center;font-size:0.78rem;color:var(--text3);margin-top:12px">Estimated delivery: 25–35 min</p>
+    </div>
+  </div>
+</main>
+
+<div class="success-overlay" id="successOverlay">
+  <div class="success-icon">🎉</div>
+  <h2 style="font-family:'Syne',sans-serif;font-size:2rem">Order Placed!</h2>
+  <p style="color:var(--text2)">Your food is being prepared with love 🍳</p>
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <a href="/orders.html"      class="btn btn-primary">Track Order →</a>
+    <a href="/restaurants.html" class="btn btn-secondary">Order More</a>
+  </div>
+</div>
+
+<script type="module">
+import { renderNav, Cart, User, toast, fmt, requireAuth } from '/static/app.js';
+import { createOrder } from '/static/api.js';
+
+document.getElementById('nav-root').innerHTML = renderNav('/cart.html');
+if (!requireAuth()) throw new Error('redirect');
+
+const fmt2 = n => `₹${Number(n).toLocaleString('en-IN')}`;
+
+function render() {
+  const items    = Cart.get();
+  const subtitle = document.getElementById('cartSubtitle');
+  const layout   = document.getElementById('cartLayout');
+  const empty    = document.getElementById('emptyCart');
+
+  if (!items.length) {
+    layout.classList.add('hidden');
+    empty.classList.remove('hidden');
+    subtitle.textContent = '0 items';
+    return;
+  }
+  layout.classList.remove('hidden');
+  empty.classList.add('hidden');
+  subtitle.textContent = `${Cart.count()} item${Cart.count() === 1 ? '' : 's'}`;
+
+  document.getElementById('cartItems').innerHTML = items.map(item => `
+    <div class="cart-item fade-up" data-id="${item.id}">
+      <div class="ci-emoji">${(item.diet_tags||'').toLowerCase().includes('veg') ? '🥦' : '🍗'}</div>
+      <div class="ci-info">
+        <div class="ci-name">${item.name}</div>
+        <div class="ci-rest">${item.restaurantName || 'Restaurant'}</div>
+        <div class="ci-price">${fmt2(item.price * item.qty)}</div>
+      </div>
+      <div class="qty-ctrl">
+        <button class="qty-btn" data-action="dec" data-id="${item.id}">−</button>
+        <span class="qty-val">${item.qty}</span>
+        <button class="qty-btn" data-action="inc" data-id="${item.id}">+</button>
+      </div>
+      <button class="remove-btn" data-remove="${item.id}" title="Remove">🗑</button>
+    </div>`).join('');
+
+  const sub = Cart.total();
+  const tax = Math.round(sub * 0.05);
+  document.getElementById('osSubtotal').textContent = fmt2(sub);
+  document.getElementById('osTax').textContent      = fmt2(tax);
+  document.getElementById('osTotal').textContent    = fmt2(sub + tax);
+}
+
+render();
+
+document.getElementById('cartItems').addEventListener('click', e => {
+  const incDec = e.target.closest('[data-action]');
+  if (incDec) {
+    const id   = +incDec.dataset.id;
+    const item = Cart.get().find(i => i.id === id);
+    if (!item) return;
+    Cart.updateQty(id, item.qty + (incDec.dataset.action === 'inc' ? 1 : -1));
+    render();
+  }
+  const rem = e.target.closest('[data-remove]');
+  if (rem) { Cart.remove(+rem.dataset.remove); render(); toast('Item removed', 'info'); }
+});
+
+document.getElementById('clearBtn').addEventListener('click', () => {
+  Cart.clear(); render(); toast('Cart cleared', 'info');
+});
+
+document.getElementById('placeOrderBtn').addEventListener('click', async () => {
+  const user  = User.get();
+  const items = Cart.get();
+  if (!user)         { toast('Please log in first!', 'error'); return; }
+  if (!items.length) { toast('Cart is empty!',       'error'); return; }
+
+  const btn = document.getElementById('placeOrderBtn');
+  btn.disabled = true;
+  btn.textContent = 'Placing order…';
+
+  const sub          = Cart.total();
+  const tax          = Math.round(sub * 0.05);
+  const totalPrice   = sub + tax;
+  const restaurantId = items[0]?.restaurantId ?? null;
+
+  try {
+    await createOrder(items, user.id, restaurantId, totalPrice);
+    Cart.clear();
+    document.getElementById('successOverlay').classList.add('show');
+  } catch (e) {
+    toast(`Order failed: ${e.message}`, 'error');
+    btn.disabled = false;
+    btn.textContent = 'Place Order 🚀';
+  }
+});
+</script>
+</body>
+</html>

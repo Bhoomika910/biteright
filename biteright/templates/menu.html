@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>BiteRight — Menu</title>
+<link rel="stylesheet" href="/static/style.css"/>
+<style>
+.menu-hero { background:linear-gradient(135deg,var(--bg2),var(--surface)); border-bottom:1px solid var(--border); padding:40px 24px 32px; }
+.menu-hero-inner { max-width:1200px;margin:0 auto; }
+.back-link { font-size:0.85rem;color:var(--text2);text-decoration:none;display:inline-flex;align-items:center;gap:5px;margin-bottom:16px;transition:var(--transition); }
+.back-link:hover { color:var(--text); }
+.menu-rest-name { font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(1.6rem,4vw,2.4rem);margin-bottom:6px; }
+.menu-rest-meta { display:flex;gap:16px;color:var(--text2);font-size:0.88rem;flex-wrap:wrap; }
+.menu-rest-meta span { display:flex;align-items:center;gap:5px; }
+.menu-filter-bar { display:flex;gap:10px;flex-wrap:wrap;margin-top:20px; }
+.filter-btn { padding:8px 18px;border-radius:50px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text2);font-family:'DM Sans',sans-serif;font-size:0.85rem;font-weight:600;cursor:pointer;transition:var(--transition); }
+.filter-btn:hover,.filter-btn.active { border-color:var(--primary);color:var(--primary);background:var(--primary-glow); }
+.dish-card { background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden; }
+.dish-img-wrap { height:140px;background:linear-gradient(135deg,var(--surface),var(--surface2));display:flex;align-items:center;justify-content:center;position:relative; }
+.dish-img-placeholder { font-size:3.5rem; }
+.dish-dot { position:absolute;top:10px;left:10px;width:14px;height:14px;border-radius:50%;border:2px solid; }
+.dish-dot.veg    { background:#2ECC71;border-color:#2ECC71; }
+.dish-dot.nonveg { background:#E74C3C;border-color:#E74C3C; }
+.dish-body   { padding:16px; }
+.dish-name   { font-family:'Syne',sans-serif;font-weight:700;font-size:0.98rem;margin-bottom:6px; }
+.dish-tags   { display:flex;gap:6px;flex-wrap:wrap; }
+.dish-price  { font-size:1.1rem;font-weight:700;color:var(--primary);margin:10px 0; }
+.dish-actions { display:flex;gap:8px;flex-wrap:wrap; }
+.menu-layout { display:grid;grid-template-columns:240px 1fr;gap:28px;align-items:start; }
+.menu-sidebar { position:sticky;top:80px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px; }
+.menu-sidebar h3 { font-family:'Syne',sans-serif;font-weight:700;font-size:0.95rem;margin-bottom:14px;color:var(--text2);text-transform:uppercase;letter-spacing:0.06em; }
+.cat-link { display:block;padding:9px 12px;border-radius:var(--radius-sm);font-size:0.9rem;color:var(--text2);text-decoration:none;cursor:pointer;transition:var(--transition);border:none;background:none;width:100%;text-align:left;font-family:'DM Sans',sans-serif; }
+.cat-link:hover,.cat-link.active { background:var(--primary-glow);color:var(--primary); }
+.rec-link { display:inline-flex;align-items:center;gap:6px;margin-top:16px;padding:10px 14px;background:var(--primary-glow);border:1px solid var(--border-hot);border-radius:var(--radius-sm);color:var(--primary);font-size:0.85rem;font-weight:600;text-decoration:none;width:100%;justify-content:center; }
+@media (max-width:768px) { .menu-layout{grid-template-columns:1fr} .menu-sidebar{position:relative;top:0} }
+</style>
+</head>
+<body>
+<div id="nav-root"></div>
+
+<div class="menu-hero">
+  <div class="menu-hero-inner">
+    <a href="restaurants.html" class="back-link">← Back to Restaurants</a>
+    <div class="menu-rest-name" id="restName">Loading…</div>
+    <div class="menu-rest-meta">
+      <span>⭐ 4.5 (200+ ratings)</span>
+      <span>🕐 25-35 min</span>
+      <span>🛵 Free delivery</span>
+      <span>💰 ₹200 for two</span>
+    </div>
+    <div class="menu-filter-bar" id="filterBar">
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="veg">🌿 Veg</button>
+      <button class="filter-btn" data-filter="nonveg">🍖 Non-Veg</button>
+    </div>
+  </div>
+</div>
+
+<main class="page">
+  <div class="menu-layout">
+    <aside class="menu-sidebar" id="sidebar">
+      <h3>Categories</h3>
+      <div id="catLinks"></div>
+      <a id="recLink" href="#" class="rec-link">🤖 Get AI Picks →</a>
+    </aside>
+    <div>
+      <div class="search-bar mb-24">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="menuSearch" placeholder="Search this menu…"/>
+      </div>
+      <div class="grid-auto" id="menuGrid">
+        <div class="loader-wrap" style="grid-column:1/-1"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div id="float-root"></div>
+<script type="module">
+import { renderNav, renderFloatCart, Cart, bindCartButtons, dishCard, User, toast, requireAuth } from '/static/app.js';
+import { getMenu } from '/static/api.js';
+
+document.getElementById('nav-root').innerHTML   = renderNav('/restaurants.html');
+document.getElementById('float-root').innerHTML = renderFloatCart();
+Cart.init();
+if (!requireAuth()) throw new Error('redirect');
+
+const params   = new URLSearchParams(location.search);
+const restId   = params.get('restaurant');
+const restName = decodeURIComponent(params.get('name') || 'Restaurant');
+
+if (!restId) { toast('Restaurant not found', 'error'); setTimeout(() => location.href='restaurants.html', 1000); }
+
+document.getElementById('restName').textContent = restName;
+document.title = `BiteRight — ${restName}`;
+
+const userId = User.id();
+document.getElementById('recLink').href = userId
+  ? `recommendations.html?restaurant=${restId}&restaurantName=${encodeURIComponent(restName)}`
+  : `login.html`;
+
+const grid = document.getElementById('menuGrid');
+let allDishes = [];
+
+function renderDishes(dishes) {
+  grid.innerHTML = dishes.map(d => dishCard(d, restId, restName, {showAllergy:true})).join('') ||
+    `<div class="empty" style="grid-column:1/-1"><div class="empty-icon">🍽️</div><h3>No dishes match</h3></div>`;
+  bindCartButtons(grid);
+}
+
+try {
+  allDishes = await getMenu(restId);
+
+  const cats     = [...new Set(allDishes.map(d => d.mood_tags).filter(Boolean))];
+  const catLinks = document.getElementById('catLinks');
+  catLinks.innerHTML = `<button class="cat-link active" data-cat="all">All items (${allDishes.length})</button>` +
+    cats.map(c => `<button class="cat-link" data-cat="${c}">${c} (${allDishes.filter(d=>d.mood_tags===c).length})</button>`).join('');
+
+  catLinks.addEventListener('click', e => {
+    const btn = e.target.closest('.cat-link'); if(!btn) return;
+    document.querySelectorAll('.cat-link').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const cat = btn.dataset.cat;
+    renderDishes(cat === 'all' ? allDishes : allDishes.filter(d => d.mood_tags === cat));
+  });
+
+  renderDishes(allDishes);
+} catch {
+  grid.innerHTML = `<div class="empty" style="grid-column:1/-1"><div class="empty-icon">⚠️</div><h3>Failed to load menu</h3><p>Backend may be offline</p></div>`;
+}
+
+document.getElementById('filterBar').addEventListener('click', e => {
+  const btn = e.target.closest('.filter-btn'); if(!btn) return;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const f = btn.dataset.filter;
+  let filtered = allDishes;
+  if (f==='veg')    filtered = allDishes.filter(d => (d.diet_tags||'').toLowerCase().includes('veg'));
+  if (f==='nonveg') filtered = allDishes.filter(d => !(d.diet_tags||'').toLowerCase().includes('veg'));
+  renderDishes(filtered);
+});
+
+document.getElementById('menuSearch').addEventListener('input', function() {
+  const q = this.value.toLowerCase();
+  renderDishes(allDishes.filter(d =>
+    (d.name||'').toLowerCase().includes(q) || (d.ingredients||'').toLowerCase().includes(q)
+  ));
+});
+</script>
+</body>
+</html>

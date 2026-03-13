@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>BiteRight — Orders</title>
+<link rel="stylesheet" href="/static/style.css"/>
+<style>
+.orders-hero { background:var(--bg2);border-bottom:1px solid var(--border);padding:44px 24px 36px; }
+.orders-hero-inner { max-width:1200px;margin:0 auto; }
+.order-card { background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;transition:var(--transition); }
+.order-card:hover { border-color:var(--border-hot); }
+.order-head { padding:20px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;border-bottom:1px solid var(--border); }
+.order-id   { font-family:'Syne',sans-serif;font-weight:700;font-size:0.95rem; }
+.order-date { font-size:0.82rem;color:var(--text2); }
+.order-status { display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:50px;font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em; }
+.status-delivered { background:rgba(46,204,113,0.12);color:#2ECC71;border:1px solid rgba(46,204,113,0.25); }
+.status-preparing { background:rgba(255,190,0,0.12);color:#FFBE00;border:1px solid rgba(255,190,0,0.25); }
+.status-pending   { background:var(--primary-glow);color:var(--primary);border:1px solid var(--border-hot); }
+.order-body { padding:20px 24px; }
+.order-items-list { display:flex;flex-direction:column;gap:10px;margin-bottom:16px; }
+.oi-row   { display:flex;align-items:center;justify-content:space-between; }
+.oi-name  { font-size:0.9rem;font-weight:500;display:flex;align-items:center;gap:8px; }
+.oi-price { font-size:0.9rem;font-weight:600;color:var(--text2); }
+.order-total { display:flex;justify-content:flex-end;padding-top:14px;border-top:1px solid var(--border); }
+.order-total-label { font-family:'Syne',sans-serif;font-size:1rem;font-weight:700; }
+.order-total-val   { font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;color:var(--primary);margin-left:12px; }
+.filter-tabs { display:flex;gap:6px;margin-bottom:24px; }
+.tab-btn { padding:8px 18px;border-radius:50px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text2);font-family:'DM Sans',sans-serif;font-size:0.85rem;font-weight:600;cursor:pointer;transition:var(--transition); }
+.tab-btn:hover,.tab-btn.active { border-color:var(--primary);color:var(--primary);background:var(--primary-glow); }
+.timeline-dot { width:10px;height:10px;border-radius:50%;background:var(--success);display:inline-block; }
+</style>
+</head>
+<body>
+<div id="nav-root"></div>
+
+<div class="orders-hero">
+  <div class="orders-hero-inner">
+    <h1 class="fade-up" style="font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(1.6rem,4vw,2.4rem);margin-bottom:6px">📋 Your Orders</h1>
+    <p class="fade-up-d1" style="color:var(--text2)">Track, reorder, and relive your best meals</p>
+  </div>
+</div>
+
+<main class="page">
+  <div id="content"></div>
+</main>
+
+<div id="float-root"></div>
+<script type="module">
+import { renderNav, renderFloatCart, Cart, User, toast, fmt, requireAuth } from '/static/app.js';
+import { getOrders } from '/static/api.js';
+
+document.getElementById('nav-root').innerHTML   = renderNav('/orders.html');
+document.getElementById('float-root').innerHTML = renderFloatCart();
+Cart.init();
+if (!requireAuth()) throw new Error('redirect');
+
+const content = document.getElementById('content');
+const user    = User.get();
+
+if (!user) {
+  content.innerHTML = `
+    <div style="text-align:center;padding:80px 20px">
+      <div style="font-size:3rem;margin-bottom:16px">🔒</div>
+      <h2 style="font-family:'Syne',sans-serif;font-size:1.5rem;margin-bottom:8px">Log in to see your orders</h2>
+      <p style="color:var(--text2);margin-bottom:24px">Your order history lives here after you create a profile</p>
+      <a href="login.html" class="btn btn-primary btn-lg">Create Profile →</a>
+    </div>`;
+} else {
+  content.innerHTML = `<div class="loader-wrap"><div class="spinner"></div></div>`;
+
+  const FOOD_EMOJIS = ['🍕','🍜','🍛','🥗','🍔','🌮','🍱','🍝','🍲','🍣'];
+
+  function statusClass(s) {
+    const sl = (s||'').toLowerCase();
+    if (sl.includes('deliver')) return 'status-delivered';
+    if (sl.includes('prepar') || sl.includes('out')) return 'status-preparing';
+    return 'status-pending';
+  }
+
+  function statusDotColor(s) {
+    const sl = (s||'').toLowerCase();
+    if (sl.includes('deliver')) return '#2ECC71';
+    if (sl.includes('prepar') || sl.includes('out')) return '#FFBE00';
+    return 'var(--primary)';
+  }
+
+  function renderOrders(orders) {
+    if (!orders.length) {
+      content.innerHTML = `
+        <div class="empty">
+          <div class="empty-icon">📦</div>
+          <h3>No orders yet</h3>
+          <p>Your order history will appear here</p>
+          <a href="restaurants.html" class="btn btn-primary mt-16">Start Ordering →</a>
+        </div>`;
+      return;
+    }
+
+    content.innerHTML = `
+      <div class="filter-tabs mb-24">
+        <button class="tab-btn active" data-tab="all">All Orders (${orders.length})</button>
+        <button class="tab-btn" data-tab="recent">Recent</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px" id="ordersList">
+        ${orders.map((o, i) => {
+          const items  = o.items || [];
+          const status = o.status || 'pending';
+          const total  = o.total_price || items.reduce((s, it) => s + (it.price||0) * (it.quantity||1), 0);
+          const date   = o.created_at
+            ? new Date(o.created_at).toLocaleDateString('en-IN', {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})
+            : 'Recently';
+          return `
+          <div class="order-card fade-up" style="animation-delay:${i*0.07}s">
+            <div class="order-head">
+              <div>
+                <div class="order-id">Order #${o.id}</div>
+                <div class="order-date">${date}</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <span class="order-status ${statusClass(status)}">
+                  <span class="timeline-dot" style="background:${statusDotColor(status)}"></span>
+                  ${status}
+                </span>
+              </div>
+            </div>
+            <div class="order-body">
+              ${items.length ? `
+              <div class="order-items-list">
+                ${items.slice(0,3).map((it, j) => `
+                  <div class="oi-row">
+                    <div class="oi-name">${FOOD_EMOJIS[j%FOOD_EMOJIS.length]} ${it.dish_name||it.name||'Item'} <span style="color:var(--text3)">×${it.quantity||1}</span></div>
+                    <div class="oi-price">${fmt((it.price||0)*(it.quantity||1))}</div>
+                  </div>`).join('')}
+                ${items.length > 3 ? `<div style="font-size:0.82rem;color:var(--text2)">+${items.length-3} more item${items.length-3===1?'':'s'}</div>` : ''}
+              </div>` : `<p style="color:var(--text2);font-size:0.9rem;margin-bottom:16px">No item details available</p>`}
+              <div class="order-total">
+                <span class="order-total-label">Total paid:</span>
+                <span class="order-total-val">${fmt(total)}</span>
+              </div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>`;
+  }
+
+  try {
+    const orders = await getOrders(user.id);
+    renderOrders(orders);
+  } catch (e) {
+    content.innerHTML = `
+      <div class="empty">
+        <div class="empty-icon">⚠️</div>
+        <h3>Failed to load orders</h3>
+        <p>${e.message}</p>
+        <a href="restaurants.html" class="btn btn-primary mt-16">Browse & Order Now →</a>
+      </div>`;
+  }
+}
+</script>
+</body>
+</html>

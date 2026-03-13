@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>BiteRight — Discover What to Eat</title>
+<link rel="stylesheet" href="/static/style.css"/>
+<style>
+.hero { position:relative;overflow:hidden;min-height:540px;display:flex;align-items:center;background:var(--bg2); }
+.hero-bg { position:absolute;inset:0;
+  background: radial-gradient(ellipse 60% 80% at 70% 50%,rgba(255,77,0,0.18) 0%,transparent 70%),
+              radial-gradient(ellipse 40% 60% at 20% 80%,rgba(255,190,0,0.10) 0%,transparent 60%), var(--bg2); }
+.hero-emoji-grid { position:absolute;right:80px;top:50%;transform:translateY(-50%); display:grid;grid-template-columns:repeat(3,80px);gap:14px;opacity:0.8; }
+.hero-emoji-cell { width:80px;height:80px; background:var(--surface);border:1px solid var(--border);border-radius:20px; display:flex;align-items:center;justify-content:center;font-size:2.2rem; animation:floatEmoji var(--dur,4s) var(--delay,0s) ease-in-out infinite alternate; }
+@keyframes floatEmoji { from{transform:translateY(0)} to{transform:translateY(-10px)} }
+.hero-content { position:relative;z-index:2;padding:80px 60px;max-width:580px; }
+.hero-label { display:inline-flex;align-items:center;gap:7px; background:var(--primary-glow);border:1px solid var(--border-hot); border-radius:50px;padding:6px 14px; font-size:0.8rem;font-weight:600;color:var(--primary);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:20px; }
+.hero-title { font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(2.4rem,5vw,3.6rem);line-height:1.1;color:var(--text);margin-bottom:18px; }
+.hero-title em { color:var(--primary);font-style:normal; }
+.hero-sub { font-size:1.05rem;color:var(--text2);line-height:1.65;margin-bottom:32px; }
+.hero-ctas { display:flex;gap:12px;flex-wrap:wrap; }
+.hero-stats { display:flex;gap:28px;margin-top:40px;padding-top:28px;border-top:1px solid var(--border); }
+.stat-val { font-family:'Syne',sans-serif;font-weight:800;font-size:1.6rem;color:var(--text); }
+.stat-lbl { font-size:0.78rem;color:var(--text2);margin-top:2px; }
+.search-strip { background:var(--bg2);border-bottom:1px solid var(--border);padding:20px 24px; }
+.search-strip-inner { max-width:700px;margin:0 auto; }
+.mood-grid { display:grid;grid-template-columns:repeat(4,1fr);gap:16px; }
+.mood-card { background:var(--surface);border:1px solid var(--border);border-radius:var(--radius); padding:28px 20px;text-align:center;cursor:pointer;transition:var(--transition);text-decoration:none;display:block; }
+.mood-card:hover { border-color:var(--c);transform:translateY(-4px); box-shadow:0 8px 30px color-mix(in srgb,var(--c) 30%,transparent); background:color-mix(in srgb,var(--c) 8%,var(--surface)); }
+.mood-emoji { font-size:2.8rem;margin-bottom:12px;display:block; }
+.mood-label { font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;color:var(--text); }
+.mood-desc  { font-size:0.8rem;color:var(--text2);margin-top:4px; }
+.rest-card { background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;transition:var(--transition);cursor:pointer;text-decoration:none;display:block;color:inherit; }
+.rest-card:hover { border-color:var(--border-hot);transform:translateY(-4px);box-shadow:var(--shadow-hot); }
+.rest-img { height:170px;background:linear-gradient(135deg,var(--surface) 0%,var(--surface2) 100%);display:flex;align-items:center;justify-content:center;font-size:4rem;position:relative; }
+.rest-badge { position:absolute;top:12px;right:12px;background:rgba(14,12,10,0.7);backdrop-filter:blur(8px);border:1px solid var(--border);border-radius:50px;padding:4px 10px;font-size:0.75rem;font-weight:600;color:var(--accent); }
+.rest-body  { padding:18px; }
+.rest-name  { font-family:'Syne',sans-serif;font-weight:700;font-size:1.05rem;color:var(--text);margin-bottom:6px; }
+.rest-meta  { font-size:0.82rem;color:var(--text2);display:flex;gap:14px;margin-bottom:14px;flex-wrap:wrap; }
+.feature-strip { margin-top:64px;padding:40px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);display:grid;grid-template-columns:repeat(3,1fr); }
+.feature-item { padding:0 32px;text-align:center;border-right:1px solid var(--border); }
+.feature-item:last-child { border-right:none; }
+.feature-icon  { font-size:2rem;margin-bottom:12px; }
+.feature-title { font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;margin-bottom:6px; }
+.feature-desc  { font-size:0.84rem;color:var(--text2);line-height:1.5; }
+@media (max-width:900px) { .hero-emoji-grid{display:none} .hero-content{padding:60px 24px} .mood-grid{grid-template-columns:repeat(2,1fr)} .feature-strip{grid-template-columns:1fr} .feature-item{border-right:none;border-bottom:1px solid var(--border);padding:24px 0} .feature-item:last-child{border-bottom:none} }
+</style>
+</head>
+<body>
+<script>
+if (!localStorage.getItem('br_user')) {
+  location.replace('login.html?next=' + encodeURIComponent(location.pathname + location.search));
+}
+</script>
+<div id="nav-root"></div>
+
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-emoji-grid" id="emojiGrid"></div>
+  <div class="hero-content">
+    <div class="hero-label">🔥 AI-powered food picks</div>
+    <h1 class="hero-title">Eat <em>smarter</em>,<br>every single meal.</h1>
+    <p class="hero-sub">BiteRight learns your mood, diet & cravings to surface dishes you'll actually love — no more scrolling forever.</p>
+    <div class="hero-ctas">
+      <a href="restaurants.html" class="btn btn-primary btn-lg">Explore Restaurants →</a>
+      <a href="recommendations.html" class="btn btn-secondary btn-lg">Get Recommendations</a>
+    </div>
+    <div class="hero-stats">
+      <div><div class="stat-val">50+</div><div class="stat-lbl">Restaurants</div></div>
+      <div><div class="stat-val">500+</div><div class="stat-lbl">Dishes</div></div>
+      <div><div class="stat-val">AI</div><div class="stat-lbl">Smart Picks</div></div>
+    </div>
+  </div>
+</section>
+
+<div class="search-strip">
+  <div class="search-strip-inner">
+    <div class="search-bar"><span class="search-icon">🔍</span><input type="text" placeholder="Search for dishes, cuisines, moods…" id="searchInput"/></div>
+  </div>
+</div>
+
+<main class="page">
+  <section class="mb-32 fade-up">
+    <div class="section-head mb-24">
+      <div><div class="section-title">What's your mood?</div><div class="section-sub">Let us pick the perfect dish for how you feel right now</div></div>
+    </div>
+    <div class="mood-grid" id="moodGrid"></div>
+  </section>
+
+  <section class="mb-32">
+    <div class="section-head">
+      <div><div class="section-title fade-up">Popular Restaurants</div><div class="section-sub fade-up-d1">Handpicked spots delivering joy, one bite at a time</div></div>
+      <a href="restaurants.html" class="btn btn-ghost btn-sm">View all →</a>
+    </div>
+    <div class="grid-auto" id="restGrid"><div class="loader-wrap"><div class="spinner"></div></div></div>
+  </section>
+
+  <div class="feature-strip fade-up">
+    <div class="feature-item"><div class="feature-icon">🧠</div><div class="feature-title">AI Recommendations</div><div class="feature-desc">Our smart engine matches dishes to your mood, time of day, and diet.</div></div>
+    <div class="feature-item"><div class="feature-icon">🛡️</div><div class="feature-title">Allergy-Safe</div><div class="feature-desc">Every dish is checked against your allergies before showing up.</div></div>
+    <div class="feature-item"><div class="feature-icon">⚡</div><div class="feature-title">Fast Ordering</div><div class="feature-desc">Add to cart, review, and place your order in under 60 seconds.</div></div>
+  </div>
+</main>
+
+<div id="searchResults" class="hidden" style="position:fixed;inset:0;z-index:200;background:rgba(14,12,10,0.95);backdrop-filter:blur(10px);overflow-y:auto;padding:80px 24px 40px;"></div>
+<div id="float-root"></div>
+
+<script type="module">
+import { renderNav, renderFloatCart, Cart, MOODS, toast, bindCartButtons, dishCard, requireAuth } from '/static/app.js';
+import { getRestaurants, searchMenu } from '/static/api.js';
+
+if (!requireAuth()) throw new Error('redirect');
+document.getElementById('nav-root').innerHTML  = renderNav('/index.html');
+document.getElementById('float-root').innerHTML = renderFloatCart();
+Cart.init();
+
+const foodEmojis = ['🍕','🍜','🍛','🥗','🍔','🌮','🥘','🍱','🍝','🍲','🥩','🍣'];
+document.getElementById('emojiGrid').innerHTML = foodEmojis.slice(0,9).map((e,i) =>
+  `<div class="hero-emoji-cell" style="--dur:${3+i%3}s;--delay:${(i*0.4)%2}s">${e}</div>`).join('');
+
+const moodDescs = { comfort:'Warm & cozy bites', healthy:'Clean & nutritious', spicy:'Turn up the heat 🔥', cheat_meal:'Guilt-free indulgence' };
+document.getElementById('moodGrid').innerHTML = MOODS.map((m,i) => `
+  <a href="recommendations.html?mood=${m.id}" class="mood-card fade-up-d${i%4+1}" style="--c:${m.color}">
+    <span class="mood-emoji">${m.emoji}</span>
+    <div class="mood-label">${m.label}</div>
+    <div class="mood-desc">${moodDescs[m.id]||''}</div>
+  </a>`).join('');
+
+const EMOJI    = ['🏠','🌟','🍽️','🔥','🌿','⚡'];
+const restGrid = document.getElementById('restGrid');
+try {
+  const list = await getRestaurants();
+  restGrid.innerHTML = list.slice(0,6).map((r,i) => `
+    <a class="rest-card fade-up-d${i%4+1}" href="menu.html?restaurant=${r.id}&name=${encodeURIComponent(r.name||'Restaurant')}">
+      <div class="rest-img">${EMOJI[i%EMOJI.length]}<div class="rest-badge">⭐ ${(4+Math.random()).toFixed(1)}</div></div>
+      <div class="rest-body">
+        <div class="rest-name">${r.name||'Restaurant'}</div>
+        <div class="rest-meta"><span>🕐 ${20+Math.floor(Math.random()*20)} min</span><span>🛵 Free delivery</span></div>
+        <span class="btn btn-primary btn-sm" style="pointer-events:none">View Menu →</span>
+      </div>
+    </a>`).join('') || '<div class="empty"><div class="empty-icon">🍽️</div><h3>No restaurants yet</h3></div>';
+} catch {
+  restGrid.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><h3>Couldn't load restaurants</h3><p>Make sure the backend is running</p></div>`;
+}
+
+const searchInput   = document.getElementById('searchInput');
+const searchResults = document.getElementById('searchResults');
+let searchTimer;
+searchInput.addEventListener('input', () => {
+  clearTimeout(searchTimer);
+  const q = searchInput.value.trim();
+  if (!q) { searchResults.classList.add('hidden'); return; }
+  searchTimer = setTimeout(async () => {
+    searchResults.classList.remove('hidden');
+    searchResults.innerHTML = `<div style="max-width:900px;margin:0 auto">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+        <h2 style="font-family:Syne,sans-serif;font-size:1.4rem">Results for "${q}"</h2>
+        <button id="closeSearch" class="btn btn-ghost btn-sm">✕ Close</button>
+      </div>
+      <div class="loader-wrap"><div class="spinner"></div></div></div>`;
+    document.getElementById('closeSearch').onclick = () => { searchResults.classList.add('hidden'); searchInput.value=''; };
+    try {
+      const items = await searchMenu(q);
+      const inner = searchResults.querySelector('div');
+      const grid  = document.createElement('div'); grid.className='grid-auto';
+      grid.innerHTML = items.map(d => dishCard(d, d.restaurant||'', '', {showAllergy:true})).join('') ||
+        `<div class="empty"><div class="empty-icon">🔍</div><h3>No results for "${q}"</h3></div>`;
+      inner.querySelector('.loader-wrap')?.remove();
+      inner.appendChild(grid);
+      bindCartButtons(grid);
+    } catch { searchResults.querySelector('.loader-wrap').innerHTML = `<p class="text-muted">Search failed.</p>`; }
+  }, 400);
+});
+document.addEventListener('keydown', e => { if(e.key==='Escape'){searchResults.classList.add('hidden');searchInput.value='';} });
+</script>
+</body>
+</html>
