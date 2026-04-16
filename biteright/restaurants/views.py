@@ -17,7 +17,15 @@ from users.models  import UserProfile
 
 class RestaurantListView(APIView):
     """GET /api/restaurants/"""
-    def get(self, request):
+    def get(self, request, restaurant_id=None):
+        if restaurant_id:
+            try:
+                restaurant = Restaurant.objects.get(pk=restaurant_id)
+                serializer = RestaurantSerializer(restaurant)
+                return Response({'status': 'success', 'data': serializer.data})
+            except Restaurant.DoesNotExist:
+                return Response({'status': 'error', 'message': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
+
         restaurants = Restaurant.objects.all().order_by('id')
         serializer  = RestaurantSerializer(restaurants, many=True)
         return Response(serializer.data)

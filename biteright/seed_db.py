@@ -7,10 +7,11 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 django.setup()
 
 from restaurants.models import Restaurant, MenuItem, Review
-from users.models import UserProfile
+from users.models import UserProfile, UserAddress
 
 def seed_data():
     print("Cleaning old data...")
+    UserAddress.objects.all().delete()
     Review.objects.all().delete()
     MenuItem.objects.all().delete()
     Restaurant.objects.all().delete()
@@ -18,10 +19,20 @@ def seed_data():
     user = UserProfile.objects.first()
     if not user:
         user = UserProfile.objects.create(
-            name="Test User",
-            email="test@example.com",
+            name="Bhoomika M Bidari",
+            email="bhoomika.m.bidari966@gmail.com",
             diet_preferences="vegetarian"
         )
+    
+    # Create an address
+    UserAddress.objects.create(
+        user=user,
+        address_line="No 42, 2nd Main, Indiranagar",
+        city="Bangalore",
+        pincode="560038",
+        is_default=True,
+        address_type="Home"
+    )
 
     restaurants_data = [
         {

@@ -65,7 +65,19 @@
         <span class="os-total">Total</span>
         <span class="os-total-val" id="osTotal">₹0</span>
       </div>
-      <button class="btn btn-primary btn-full btn-lg place-order-btn mt-16" id="placeOrderBtn">
+      
+      <!-- Address Selector -->
+      <div class="mt-24 mb-24">
+        <div class="flex-between mb-8">
+          <div style="font-size:0.8rem; font-weight:700; color:var(--text2); text-transform:uppercase">Delivery Address</div>
+          <a href="/login.html" style="font-size:0.75rem; color:var(--primary); font-weight:600; text-decoration:none">+ Add New</a>
+        </div>
+        <div id="addressList" class="address-grid">
+           <div class="loader-wrap" style="padding:10px 0"><div class="spinner" style="width:20px;height:20px"></div></div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-full btn-lg place-order-btn mt-16" id="placeOrderBtn" disabled>
         <div class="shine"></div>
         Place Order 🚀
       </button>
@@ -86,7 +98,7 @@
 
 <script type="module">
 import { renderNav, Cart, User, toast, fmt, requireAuth } from '/static/app.js';
-import { createOrder } from '/static/api.js';
+import { createOrder, getAddresses } from '/static/api.js';
 
 document.getElementById('nav-root').innerHTML = renderNav('/cart.html');
 if (!requireAuth()) throw new Error('redirect');
@@ -130,9 +142,61 @@ function render() {
   document.getElementById('osSubtotal').textContent = fmt2(sub);
   document.getElementById('osTax').textContent      = fmt2(tax);
   document.getElementById('osTotal').textContent    = fmt2(sub + tax);
+  checkReadyToOrder();
 }
 
-render();
+let selectedAddressId = null;
+
+function checkReadyToOrder() {
+  const btn = document.getElementById('placeOrderBtn');
+  const items = Cart.get();
+  btn.disabled = !(items.length > 0 && selectedAddressId !== null);
+  if (items.length > 0 && selectedAddressId === null) {
+    btn.textContent = 'Select An Address Pin 📍';
+  } else if (items.length > 0) {
+    btn.textContent = 'Place Order 🚀';
+  }
+}
+
+async function loadAddresses() {
+  const container = document.getElementById('addressList');
+  const user = User.get();
+  if (!user) return;
+  
+  try {
+    const list = await getAddresses(user.id);
+    if (!list.length) {
+      container.innerHTML = `<p style="font-size:0.8rem; color:var(--text3)">No addresses saved. Please add one in profile.</p>`;
+      return;
+    }
+    
+    container.innerHTML = list.map(a => `
+      <div class="address-card" data-id="${a.id}">
+        <div class="selected-check">✓</div>
+        <div class="addr-type">${a.address_type}</div>
+        <div class="addr-line">${a.address_line}</div>
+        <div class="addr-city">${a.city} - ${a.pincode}</div>
+      </div>
+    `).join('');
+
+    container.querySelectorAll('.address-card').forEach(card => {
+       card.addEventListener('click', () => {
+         container.querySelectorAll('.address-card').forEach(c => c.classList.remove('selected'));
+         card.classList.add('selected');
+         selectedAddressId = card.dataset.id;
+         checkReadyToOrder();
+       });
+    });
+
+    // Auto select first one for demo
+    container.querySelector('.address-card').click();
+
+  } catch (e) {
+    container.innerHTML = `<p style="color:var(--danger)">Failed to load addresses</p>`;
+  }
+}
+
+loadAddresses();
 
 document.getElementById('cartItems').addEventListener('click', e => {
   const incDec = e.target.closest('[data-action]');
