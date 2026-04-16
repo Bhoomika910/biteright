@@ -7,8 +7,8 @@ from rest_framework.views    import APIView
 from rest_framework.response import Response
 from rest_framework          import status
 
-from .models       import Restaurant, MenuItem
-from .serializers  import RestaurantSerializer, MenuItemSerializer
+from .models       import Restaurant, MenuItem, Review
+from .serializers  import RestaurantSerializer, MenuItemSerializer, ReviewSerializer
 from .utils        import check_allergy_risk
 from users.models  import UserProfile
 
@@ -208,3 +208,21 @@ class RecommendationView(APIView):
             for dish, score in scored[:10]
         ]
         return Response({'status': 'success', 'recommended_items': result})
+
+
+class ReviewListView(APIView):
+    """
+    GET /api/restaurants/<restaurant_id>/reviews/
+    POST /api/reviews/ { "user": 1, "restaurant": 1, "rating": 5, "comment": "Great!" }
+    """
+    def get(self, request, restaurant_id):
+        reviews = Review.objects.filter(restaurant_id=restaurant_id).order_by('-created_at')
+        serializer = ReviewSerializer(reviews, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        serializer = ReviewSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
