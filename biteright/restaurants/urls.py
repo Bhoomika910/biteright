@@ -6,6 +6,7 @@ from .views import (
     RestaurantListView,
     SafeMenuView,
     SearchMenuView,
+    ReviewListView,
 )
 
 urlpatterns = [
@@ -15,4 +16,6 @@ urlpatterns = [
     path('recommendations/<int:user_id>/<int:restaurant_id>/', RecommendationView.as_view(), name='recommendations'),
     path('restaurants/',                                      RestaurantListView.as_view(),  name='restaurant-list'),
     path('restaurants/<int:restaurant_id>/menu/',             MenuItemListView.as_view(),    name='restaurant-menu-items'),
+    path('restaurants/<int:restaurant_id>/reviews/',          ReviewListView.as_view(),      name='restaurant-reviews'),
+    path('reviews/',                                          ReviewListView.as_view(),      name='review-create'),
 ]

@@ -13,4 +13,12 @@ class MenuItemSerializer(serializers.ModelSerializer):
 
     class Meta:
         model  = MenuItem
-        fields = ['id', 'restaurant', 'name', 'price', 'diet_tags', 'mood_tags', 'ingredients']
+        fields = '__all__'
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    user_name = serializers.ReadOnlyField(source='user.name')
+
+    class Meta:
+        model  = Review
+        fields = '__all__'
