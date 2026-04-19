@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>BiteRight — Menu</title>
-<link rel="stylesheet" href="/static/style.css"/>
+<link rel="stylesheet" href="/static/style.css?v=7"/>
 <style>
 .menu-hero { background:linear-gradient(135deg,var(--bg2),var(--surface)); border-bottom:1px solid var(--border); padding:40px 24px 32px; }
 .menu-hero-inner { max-width:1200px;margin:0 auto; }
@@ -79,8 +79,8 @@
 
 <div id="float-root"></div>
 <script type="module">
-import { renderNav, renderFloatCart, Cart, bindCartButtons, dishCard, User, toast, requireAuth } from '/static/app.js';
-import { getMenu, getReviews } from '/static/api.js';
+import { renderNav, renderFloatCart, Cart, bindCartButtons, dishCard, User, toast, requireAuth } from '/static/app.js?v=7';
+import { getMenu, getReviews } from '/static/api.js?v=7';
 
 document.getElementById('nav-root').innerHTML   = renderNav('/restaurants.html');
 document.getElementById('float-root').innerHTML = renderFloatCart();
@@ -105,13 +105,8 @@ const grid = document.getElementById('menuGrid');
 let allDishes = [];
 
 function isVeg(dish) {
-  const tags = (dish.diet_tags || '').toLowerCase();
-  const name = (dish.name || '').toLowerCase();
-  // Strictly non-veg if tag has 'non' OR name has 'chicken', 'meat', 'egg', 'fish', 'mutton'
-  if (tags.includes('non') || /\b(chicken|meat|egg|fish|mutton|prawn|beef|pork)\b/i.test(name)) {
-    return false;
-  }
-  return true;
+  // Use the reliable boolean from database
+  return dish.is_veg === true;
 }
 
 function renderDishes(dishes, filter = 'all') {
@@ -139,17 +134,18 @@ function renderDishes(dishes, filter = 'all') {
 try {
   allDishes = await getMenu(restId);
 
-  const cats     = [...new Set(allDishes.map(d => d.mood_tags).filter(Boolean))];
+  // Use category_name instead of mood_tags
+  const cats     = [...new Set(allDishes.map(d => d.category_name).filter(Boolean))];
   const catLinks = document.getElementById('catLinks');
   catLinks.innerHTML = `<button class="cat-link active" data-cat="all">All items (${allDishes.length})</button>` +
-    cats.map(c => `<button class="cat-link" data-cat="${c}">${c} (${allDishes.filter(d=>d.mood_tags===c).length})</button>`).join('');
+    cats.map(c => `<button class="cat-link" data-cat="${c}">${c} (${allDishes.filter(d=>d.category_name===c).length})</button>`).join('');
 
   catLinks.addEventListener('click', e => {
     const btn = e.target.closest('.cat-link'); if(!btn) return;
     document.querySelectorAll('.cat-link').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     const cat = btn.dataset.cat;
-    renderDishes(cat === 'all' ? allDishes : allDishes.filter(d => d.mood_tags === cat));
+    renderDishes(cat === 'all' ? allDishes : allDishes.filter(d => d.category_name === cat));
   });
 
   renderDishes(allDishes);

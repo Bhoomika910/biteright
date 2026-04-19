@@ -7,5 +7,5 @@ class UserProfileAdmin(admin.ModelAdmin):
 
 @admin.register(UserAddress)
 class UserAddressAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'address_type', 'address_line', 'city', 'pincode')
-    list_filter = ('address_type', 'city')
+    list_display = ('id', 'user', 'address_type', 'address_line', 'city', 'state', 'pincode', 'phone_number')
+    list_filter = ('address_type', 'city', 'state')
