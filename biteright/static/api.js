@@ -49,9 +49,25 @@ export async function createUser(payload) {
   return json.data ?? json;
 }
 
+export async function getAddresses(userId) {
+  const json = await apiFetch(`${BASE}/users/${userId}/addresses/`);
+  return Array.isArray(json) ? json : (json.data ?? json.results ?? []);
+}
+
+
 // ── Restaurants ────────────────────────────────────────────────────────────
 export async function getRestaurants() {
   const json = await apiFetch(`${BASE}/restaurants/`);
+  return Array.isArray(json) ? json : (json.data ?? json.results ?? []);
+}
+
+export async function getRestaurant(id) {
+  const json = await apiFetch(`${BASE}/restaurants/${id}/`);
+  return json.data ?? json;
+}
+
+export async function getReviews(restaurantId) {
+  const json = await apiFetch(`${BASE}/restaurants/${restaurantId}/reviews/`);
   return Array.isArray(json) ? json : (json.data ?? json.results ?? []);
 }
 

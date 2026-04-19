@@ -151,18 +151,23 @@ export const TIMES = [
 
 // ── Dish Card ──────────────────────────────────────────────────────────────
 export function dishCard(dish, restaurantId, restaurantName, opts = {}) {
-  const isVeg    = (dish.diet_tags || '').toLowerCase().includes('veg');
+  const isVeg    = dish.is_veg === true;
   const scoreTag = dish.score != null
     ? `<span class="tag tag-score">⭐ ${dish.score}</span>` : '';
   const allergyBtn = opts.showAllergy
     ? `<button class="btn btn-ghost btn-sm allergy-check"
          data-ingredients="${dish.ingredients || ''}">🔍 Allergy</button>` : '';
+  
+  const rankBadge = opts.rank 
+    ? `<div style="position:absolute;top:10px;right:10px;background:rgba(14,12,10,.8);border:1px solid var(--border);border-radius:50px;padding:3px 10px;font-size:.75rem;font-weight:700;color:var(--accent);z-index:2">#${opts.rank}</div>`
+    : '';
 
   return `
   <div class="card dish-card fade-up" data-id="${dish.id}">
     <div class="dish-img-wrap">
       <div class="dish-img-placeholder">${isVeg ? '🥦' : '🍗'}</div>
       <div class="dish-dot ${isVeg ? 'veg' : 'nonveg'}"></div>
+      ${rankBadge}
     </div>
     <div class="dish-body">
       <div class="flex-between mb-8">
@@ -170,13 +175,27 @@ export function dishCard(dish, restaurantId, restaurantName, opts = {}) {
       </div>
       <div class="dish-tags mb-8">
         <span class="tag ${isVeg ? 'tag-veg' : 'tag-nonveg'}">${isVeg ? '🌿 Veg' : '🍖 Non-veg'}</span>
-        ${dish.mood_tags ? `<span class="tag tag-mood">${dish.mood_tags}</span>` : ''}
+        ${dish.category_name ? `<span class="tag tag-mood">${dish.category_name}</span>` : ''}
       </div>
-      <p class="dish-price">₹${dish.price}</p>
+      <p class="text-xs text-muted mb-12" style="height:2.4rem; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">
+        ${dish.description || 'Delicious freshly prepared meal.'}
+      </p>
+      
+      <div class="ingredients-wrap mb-10 hidden" id="ing-${dish.id}">
+        <div style="font-size:0.75rem; color:var(--text2); padding:10px; background:var(--bg2); border-radius:8px; border:1px dashed var(--border); line-height:1.4">
+          <b style="color:var(--text)">🛒 Ingredients:</b><br>${dish.ingredients || 'Secret recipe!'}
+        </div>
+      </div>
+
+      <div class="flex-between align-center mb-12">
+        <p class="dish-price" style="margin:0; font-size:1.1rem">₹${dish.price}</p>
+        <button class="btn btn-ghost btn-sm view-ing" data-id="${dish.id}" style="font-size:0.7rem; color:var(--primary)">View Ingredients</button>
+      </div>
+
       <div class="dish-actions">
-        <button class="btn btn-primary btn-sm add-to-cart"
+        <button class="btn btn-primary btn-sm add-to-cart" style="flex:1"
           data-id="${dish.id}" data-name="${dish.name}" data-price="${dish.price}"
-          data-diet="${dish.diet_tags || ''}" data-mood="${dish.mood_tags || ''}"
+          data-diet="${dish.diet_tags || ''}" data-mood="${dish.category_name || ''}"
           data-ingredients="${dish.ingredients || ''}"
           data-restaurant-id="${restaurantId}"
           data-restaurant-name="${restaurantName || ''}">
@@ -191,6 +210,17 @@ export function dishCard(dish, restaurantId, restaurantName, opts = {}) {
 // ── Cart button event binding ──────────────────────────────────────────────
 export function bindCartButtons(container) {
   container.addEventListener('click', e => {
+    // Ingredients Toggle
+    const ingBtn = e.target.closest('.view-ing');
+    if (ingBtn) {
+      const id  = ingBtn.dataset.id;
+      const box = document.getElementById(`ing-${id}`);
+      if (box) {
+        box.classList.toggle('hidden');
+        ingBtn.textContent = box.classList.contains('hidden') ? 'View Ingredients' : 'Hide Ingredients';
+      }
+    }
+
     const btn = e.target.closest('.add-to-cart');
     if (btn) {
       const dish = {

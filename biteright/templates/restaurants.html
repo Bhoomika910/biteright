@@ -61,21 +61,26 @@ const CUISINES = ['Indian','Chinese','Italian','Mexican','Thai','Japanese','Medi
 let allRestaurants = [];
 
 function renderCard(r, i) {
-  const rating  = (4 + Math.random()).toFixed(1);
-  const time    = 20 + Math.floor(Math.random() * 20);
-  const cuisine = CUISINES[i % CUISINES.length];
+  const rating  = r.rating || (4 + Math.random()).toFixed(1);
+  const time    = r.delivery_time || "25-35 min";
+  const cuisine = r.cuisine_type || CUISINES[i % CUISINES.length];
+  const loc     = r.location || "Nearby";
   return `
   <a class="card rest-card fade-up" href="menu.html?restaurant=${r.id}&name=${encodeURIComponent(r.name||'Restaurant')}">
     <div class="rest-img">${EMOJIS[i%EMOJIS.length]}<div class="rest-img-badge">⭐ ${rating}</div></div>
     <div class="rest-body">
-      <div class="rest-name">${r.name||'Restaurant'}</div>
-      <div class="rest-cuisine">${cuisine} Cuisine</div>
-      <div class="rest-meta">
-        <div class="rest-meta-item">🕐 ${time}-${time+10} min</div>
-        <div class="rest-meta-item">🛵 Free delivery</div>
-        <div class="rest-meta-item">💰 ₹200 for two</div>
+      <div class="flex-between mb-8">
+        <div class="rest-name">${r.name||'Restaurant'}</div>
       </div>
-      <button class="btn btn-primary btn-sm" style="pointer-events:none">View Menu →</button>
+      <div class="rest-cuisine">${cuisine}</div>
+      <div class="rest-meta">
+        <div class="rest-meta-item">🕐 ${time}</div>
+        <div class="rest-meta-item">📍 ${loc}</div>
+      </div>
+      <div class="mt-16" style="border-top: 1px solid var(--border); padding-top:12px; display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:0.75rem; color:var(--text3); font-weight:600">DELIVERING NOW</span>
+        <span class="btn btn-ghost btn-sm" style="padding:4px 12px; pointer-events:none">Menu →</span>
+      </div>
     </div>
   </a>`;
 }

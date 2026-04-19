@@ -6,22 +6,44 @@ import random
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 django.setup()
 
-from restaurants.models import Restaurant, MenuItem, Review
-from users.models import UserProfile
+from restaurants.models import Restaurant, MenuItem, Review, Category
+from users.models import UserProfile, UserAddress
 
 def seed_data():
     print("Cleaning old data...")
+    UserAddress.objects.all().delete()
     Review.objects.all().delete()
     MenuItem.objects.all().delete()
     Restaurant.objects.all().delete()
+    Category.objects.all().delete()
 
+    # Create Categories
+    cat_map = {}
+    cat_list = ['Healthy', 'Comfort', 'Spicy', 'Cheat Meal', 'Late Night', 'Desserts', 'Breakfast']
+    for cat_name in cat_list:
+        cat_map[cat_name.lower()] = Category.objects.create(name=cat_name)
+    
     user = UserProfile.objects.first()
     if not user:
         user = UserProfile.objects.create(
-            name="Test User",
-            email="test@example.com",
-            diet_preferences="vegetarian"
+            name="Bhoomika M Bidari",
+            email="bhoomika.m.bidari966@gmail.com",
+            phone_number="9876543210",
+            diet_preferences="vegetarian",
+            allergies="Peanuts"
         )
+    
+    # Create an address
+    UserAddress.objects.create(
+        user=user,
+        address_line="No 42, 2nd Main, Indiranagar",
+        city="Bangalore",
+        state="Karnataka",
+        pincode="560038",
+        phone_number="9876543210",
+        is_default=True,
+        address_type="Home"
+    )
 
     restaurants_data = [
         {
@@ -30,6 +52,8 @@ def seed_data():
             "description": "Healthy, organic, and locally sourced salads and bowls.",
             "cuisine_type": "Healthy / Vegan",
             "location": "Indiranagar, Bangalore",
+            "contact_number": "080-12345678",
+            "official_email": "hello@greenbowl.com",
             "rating": 4.5,
             "delivery_time": "20-30 min"
         },
@@ -39,6 +63,8 @@ def seed_data():
             "description": "Authentic Indian flavors from across the country.",
             "cuisine_type": "North Indian",
             "location": "Koramangala, Bangalore",
+            "contact_number": "080-87654321",
+            "official_email": "info@spiceroute.in",
             "rating": 4.2,
             "delivery_time": "35-45 min"
         },
@@ -48,6 +74,8 @@ def seed_data():
             "description": "The best messy burgers in town.",
             "cuisine_type": "American",
             "location": "HSR Layout, Bangalore",
+            "contact_number": "080-11223344",
+            "official_email": "burgers@haven.com",
             "rating": 4.0,
             "delivery_time": "15-25 min"
         },
@@ -57,6 +85,8 @@ def seed_data():
             "description": "Fresh, premium sushi and Japanese delights.",
             "cuisine_type": "Japanese",
             "location": "Lavelle Road, Bangalore",
+            "contact_number": "080-55667788",
+            "official_email": "zen@sushi.jp",
             "rating": 4.8,
             "delivery_time": "40-50 min"
         },
@@ -66,106 +96,38 @@ def seed_data():
             "description": "Handmade pasta and wood-fired pizzas.",
             "cuisine_type": "Italian",
             "location": "Whitefield, Bangalore",
+            "contact_number": "080-99887766",
+            "official_email": "pasta@paradiso.it",
             "rating": 4.3,
             "delivery_time": "30-40 min"
-        },
-        {
-            "name": "Taco Temple", 
-            "image_url": "https://images.unsplash.com/photo-1565299585323-38d6b0865b47",
-            "description": "Vibrant Mexican street tacos and quesadillas.",
-            "cuisine_type": "Mexican",
-            "location": "MG Road, Bangalore",
-            "rating": 4.1,
-            "delivery_time": "25-35 min"
-        },
-        {
-            "name": "Morning Dew", 
-            "image_url": "https://images.unsplash.com/photo-1496044534511-c03ca092ed94",
-            "description": "Classic South Indian breakfast that feels like home.",
-            "cuisine_type": "South Indian",
-            "location": "Jayanagar, Bangalore",
-            "rating": 4.6,
-            "delivery_time": "15-20 min"
-        },
-        {
-            "name": "Wok & Roll", 
-            "image_url": "https://images.unsplash.com/photo-1512058564366-18510be2db19",
-            "description": "Fast-paced Indo-Chinese with bold flavors.",
-            "cuisine_type": "Chinese",
-            "location": "Electronic City, Bangalore",
-            "rating": 3.9,
-            "delivery_time": "20-30 min"
-        },
-        {
-            "name": "Steak House HQ", 
-            "image_url": "https://images.unsplash.com/photo-1546241072-48010ad28c2c",
-            "description": "Premium cuts and grilled specialties.",
-            "cuisine_type": "Steakhouse",
-            "location": "Koramangala, Bangalore",
-            "rating": 4.4,
-            "delivery_time": "45-55 min"
-        },
-        {
-            "name": "Sweet Obsession", 
-            "image_url": "https://images.unsplash.com/photo-1488477181946-6428a0291777",
-            "description": "Heavenly desserts and decadent shakes.",
-            "cuisine_type": "Desserts",
-            "location": "Indiranagar, Bangalore",
-            "rating": 4.7,
-            "delivery_time": "10-15 min"
         }
     ]
 
     items_data = {
         "The Green Bowl": [
-            {"name": "Quinoa Salad", "price": 280, "diet_tags": "Veg, Vegan", "mood_tags": "healthy", "ingredients": "Quinoa, Kale, Chickpeas, Lemon, Olive Oil"},
-            {"name": "Avocado Toast", "price": 320, "diet_tags": "Veg", "mood_tags": "healthy", "ingredients": "Sourdough, Avocado, Chili Flakes, Seeds"},
-            {"name": "Berry Smoothie Bowl", "price": 350, "diet_tags": "Veg, Vegan", "mood_tags": "healthy", "ingredients": "Blueberries, Bananas, Almond Milk, Granola"}
+            {"name": "Quinoa Salad", "price": 280, "description": "High protein quinoa with kale", "is_veg": True, "diet_tags": "Vegan", "category": cat_map['healthy'], "ingredients": "Quinoa, Kale, Chickpeas, Lemon, Olive Oil"},
+            {"name": "Avocado Toast", "price": 320, "description": "Sourdough mashed with fresh avocados", "is_veg": True, "diet_tags": "Veg", "category": cat_map['healthy'], "ingredients": "Sourdough, Avocado, Chili Flakes, Seeds"},
+            {"name": "Berry Smoothie Bowl", "price": 350, "description": "Mixed berries with almond milk", "is_veg": True, "diet_tags": "Vegan", "category": cat_map['healthy'], "ingredients": "Blueberries, Bananas, Almond Milk, Granola"}
         ],
         "Spice Route": [
-            {"name": "Butter Chicken", "price": 450, "diet_tags": "Non-Veg", "mood_tags": "comfort", "ingredients": "Chicken, Butter, Cream, Tomato, Spices"},
-            {"name": "Paneer Tikka Masala", "price": 380, "diet_tags": "Veg", "mood_tags": "spicy", "ingredients": "Paneer, Onion, Capsicum, Yogurt, Spices"},
-            {"name": "Garlic Naan", "price": 80, "diet_tags": "Veg", "mood_tags": "comfort", "ingredients": "Flour, Yeast, Garlic, Butter"}
+            {"name": "Butter Chicken", "price": 450, "description": "Classic creamy gravy chicken", "is_veg": False, "diet_tags": "Non-Veg", "category": cat_map['comfort'], "ingredients": "Chicken, Butter, Cream, Tomato, Spices"},
+            {"name": "Paneer Tikka Masala", "price": 380, "description": "Char-grilled paneer in spicy gravy", "is_veg": True, "diet_tags": "Veg", "category": cat_map['spicy'], "ingredients": "Paneer, Onion, Capsicum, Yogurt, Spices"},
+            {"name": "Garlic Naan", "price": 80, "description": "Freshly baked clay oven bread", "is_veg": True, "diet_tags": "Veg", "category": cat_map['comfort'], "ingredients": "Flour, Yeast, Garlic, Butter"}
         ],
         "Burger Haven": [
-            {"name": "Classic Cheeseburger", "price": 250, "diet_tags": "Non-Veg", "mood_tags": "cheat", "ingredients": "Beef Patty, Cheese, Lettuce, Tomato, Bun"},
-            {"name": "Spicy Zinger Burger", "price": 280, "diet_tags": "Non-Veg", "mood_tags": "spicy", "ingredients": "Crispy Chicken, Spicy Sauce, Lettuce, Bun"},
-            {"name": "Loaded Fries", "price": 180, "diet_tags": "Veg", "mood_tags": "cheat", "ingredients": "Potato, Cheese Sauce, Jalapenos"}
+            {"name": "Classic Cheeseburger", "price": 250, "description": "Juicy patty with melt cheese", "is_veg": False, "diet_tags": "Non-Veg", "category": cat_map['cheat meal'], "ingredients": "Beef Patty, Cheese, Lettuce, Tomato, Bun"},
+            {"name": "Spicy Zinger Burger", "price": 280, "description": "Crispy fried chicken with sauce", "is_veg": False, "diet_tags": "Non-Veg", "category": cat_map['spicy'], "ingredients": "Crispy Chicken, Spicy Sauce, Lettuce, Bun"},
+            {"name": "Loaded Fries", "price": 180, "description": "Fries topped with cheese sauce", "is_veg": True, "diet_tags": "Veg", "category": cat_map['cheat meal'], "ingredients": "Potato, Cheese Sauce, Jalapenos"}
         ],
         "Sushi Zen": [
-            {"name": "Salmon Nigiri", "price": 550, "diet_tags": "Non-Veg", "mood_tags": "healthy", "ingredients": "Salmon, Rice, Wasabi"},
-            {"name": "California Roll", "price": 480, "diet_tags": "Non-Veg", "mood_tags": "healthy", "ingredients": "Crab Stick, Avocado, Cucumber, Seaweed"},
-            {"name": "Miso Soup", "price": 150, "diet_tags": "Veg", "mood_tags": "healthy", "ingredients": "Tofu, Seaweed, Green Onion, Miso Paste"}
+            {"name": "Salmon Nigiri", "price": 550, "description": "Fresh salmon over vinegar rice", "is_veg": False, "diet_tags": "Non-Veg", "category": cat_map['healthy'], "ingredients": "Salmon, Rice, Wasabi"},
+            {"name": "California Roll", "price": 480, "description": "Crab stick and avocado roll", "is_veg": False, "diet_tags": "Non-Veg", "category": cat_map['healthy'], "ingredients": "Crab Stick, Avocado, Cucumber, Seaweed"},
+            {"name": "Miso Soup", "price": 150, "description": "Traditional soybean broth", "is_veg": True, "diet_tags": "Veg", "category": cat_map['healthy'], "ingredients": "Tofu, Seaweed, Green Onion, Miso Paste"}
         ],
         "Pasta Paradiso": [
-            {"name": "Spaghetti Carbonara", "price": 420, "diet_tags": "Non-Veg", "mood_tags": "comfort", "ingredients": "Spaghetti, Egg, Bacon, Parmesan, Black Pepper"},
-            {"name": "Lasagna Bolognese", "price": 480, "diet_tags": "Non-Veg", "mood_tags": "comfort", "ingredients": "Beef, Pasta sheets, Tomato Sauce, Bechamel, Cheese"},
-            {"name": "Pesto Penne", "price": 380, "diet_tags": "Veg", "mood_tags": "healthy", "ingredients": "Penne, Basil Pesto, Parmesan, Pine Nuts"}
-        ],
-        "Taco Temple": [
-            {"name": "Beef Tacos", "price": 320, "diet_tags": "Non-Veg", "mood_tags": "spicy", "ingredients": "Minced Beef, Corn Tortilla, Salsa, Onion, Cilantro"},
-            {"name": "Chicken Quesadilla", "price": 350, "diet_tags": "Non-Veg", "mood_tags": "comfort", "ingredients": "Chicken, Flour Tortilla, Cheese, Bell Peppers"},
-            {"name": "Nachos Supreme", "price": 250, "diet_tags": "Veg", "mood_tags": "cheat", "ingredients": "Corn Chips, Beans, Cheese, Sour Cream, Salsa"}
-        ],
-        "Morning Dew": [
-            {"name": "Classic Idli", "price": 120, "diet_tags": "Veg", "mood_tags": "healthy", "ingredients": "Rice, Lentils, Sambar, Coconut Chutney"},
-            {"name": "Masala Dosa", "price": 180, "diet_tags": "Veg", "mood_tags": "comfort", "ingredients": "Rice Batter, Potato Masala, Ghee, Chutney"},
-            {"name": "Poha", "price": 100, "diet_tags": "Veg", "mood_tags": "healthy", "ingredients": "Flattened Rice, Onion, Peanut, Turmeric"}
-        ],
-        "Wok & Roll": [
-            {"name": "Chicken Hakka Noodles", "price": 320, "diet_tags": "Non-Veg", "mood_tags": "comfort", "ingredients": "Noodles, Chicken strips, Cabbage, Carrot, Soy Sauce"},
-            {"name": "Veg Manchurian", "price": 280, "diet_tags": "Veg", "mood_tags": "spicy", "ingredients": "Veg balls, Ginger, Garlic, Chili Sauce"},
-            {"name": "Fried Rice", "price": 300, "diet_tags": "Veg", "mood_tags": "comfort", "ingredients": "Rice, Peas, Corn, Spring Onion, Egg"}
-        ],
-        "Steak House HQ": [
-            {"name": "Ribeye Steak", "price": 1200, "diet_tags": "Non-Veg", "mood_tags": "cheat", "ingredients": "Beef Ribeye, Garlic Butter, Thyme, Rosemary"},
-            {"name": "Grilled Chicken Breast", "price": 450, "diet_tags": "Non-Veg", "mood_tags": "healthy", "ingredients": "Chicken, Lemon, Asparagus, Mash"},
-            {"name": "Mousaka", "price": 550, "diet_tags": "Non-Veg", "mood_tags": "comfort", "ingredients": "Eggplant, Lamb, Bechamel, Tomato"}
-        ],
-        "Sweet Obsession": [
-            {"name": "Chocolate Lava Cake", "price": 250, "diet_tags": "Veg", "mood_tags": "cheat", "ingredients": "Chocolate, Flour, Sugar, Egg, Cocoa"},
-            {"name": "Fruit Custard", "price": 180, "diet_tags": "Veg", "mood_tags": "healthy", "ingredients": "Milk, Custard Powder, Apple, Pomegranate, Grapes"},
-            {"name": "New York Cheesecake", "price": 320, "diet_tags": "Veg", "mood_tags": "comfort", "ingredients": "Cream Cheese, Biscuit Base, Sugar, Berry Jam"}
+            {"name": "Spaghetti Carbonara", "price": 420, "description": "Egg and cheese based pasta", "is_veg": False, "diet_tags": "Non-Veg", "category": cat_map['comfort'], "ingredients": "Spaghetti, Egg, Bacon, Parmesan, Black Pepper"},
+            {"name": "Lasagna Bolognese", "price": 480, "description": "Layered pasta with meat sauce", "is_veg": False, "diet_tags": "Non-Veg", "category": cat_map['comfort'], "ingredients": "Beef, Pasta sheets, Tomato Sauce, Bechamel, Cheese"},
+            {"name": "Pesto Penne", "price": 380, "description": "Basil pesto tossed penne", "is_veg": True, "diet_tags": "Veg", "category": cat_map['healthy'], "ingredients": "Penne, Basil Pesto, Parmesan, Pine Nuts"}
         ]
     }
 

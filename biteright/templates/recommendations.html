@@ -48,7 +48,7 @@
 
 <div id="float-root"></div>
 <script type="module">
-import { renderNav, renderFloatCart, Cart, User, MOODS, TIMES, toast, bindCartButtons, requireAuth } from '/static/app.js';
+import { renderNav, renderFloatCart, Cart, User, MOODS, TIMES, toast, bindCartButtons, dishCard, requireAuth } from '/static/app.js';
 import { getRestaurants, getRecommendations } from '/static/api.js';
 
 document.getElementById('nav-root').innerHTML   = renderNav('/recommendations.html');
@@ -154,7 +154,6 @@ if (!user) {
       const data     = await getRecommendations(user.id, selectedRestId, selectedMood, selectedTime);
       const items    = data.recommended_items || data || [];
       const restName = restaurants.find(r => r.id == selectedRestId)?.name || 'Restaurant';
-      const maxScore = Math.max(...items.map(d => d.score||0), 1);
 
       results.innerHTML = `
         <div class="section-head mb-24">
@@ -164,36 +163,7 @@ if (!user) {
           </div>
         </div>
         <div class="grid-auto" id="recGrid">
-          ${items.map((d, i) => `
-            <div class="dish-card fade-up" style="animation-delay:${i*0.06}s">
-              <div class="dish-img-wrap">
-                <span>${(d.diet_tags||'').toLowerCase().includes('veg')?'🥦':'🍗'}</span>
-                <div class="dish-dot ${(d.diet_tags||'').toLowerCase().includes('veg')?'veg':'nonveg'}"></div>
-                <div style="position:absolute;top:10px;right:10px;background:rgba(14,12,10,.75);border:1px solid var(--border);border-radius:50px;padding:3px 10px;font-size:.75rem;font-weight:700;color:var(--accent)">#${i+1}</div>
-              </div>
-              <div class="dish-body">
-                <div class="flex-between mb-8">
-                  <div class="dish-name">${d.name}</div>
-                  <span class="tag tag-score">⭐ ${d.score??'-'}</span>
-                </div>
-                <div class="dish-tags mb-8">
-                  <span class="tag ${(d.diet_tags||'').toLowerCase().includes('veg')?'tag-veg':'tag-nonveg'}">${(d.diet_tags||'').toLowerCase().includes('veg')?'🌿 Veg':'🍖 Non-veg'}</span>
-                  ${d.mood_tags?`<span class="tag tag-mood">${d.mood_tags}</span>`:''}
-                </div>
-                <div class="score-bar"><div class="score-fill" style="width:${((d.score||0)/maxScore)*100}%"></div></div>
-                <div class="dish-price mt-8">₹${d.price}</div>
-                <div class="dish-actions">
-                  <button class="btn btn-primary btn-sm add-to-cart"
-                    data-id="${d.id}" data-name="${d.name}" data-price="${d.price}"
-                    data-diet="${d.diet_tags||''}" data-mood="${d.mood_tags||''}"
-                    data-ingredients="${d.ingredients||''}"
-                    data-restaurant-id="${selectedRestId}"
-                    data-restaurant-name="${restName}">
-                    + Add
-                  </button>
-                </div>
-              </div>
-            </div>`).join('') ||
+          ${items.map((d, i) => dishCard(d, selectedRestId, restName, {showAllergy:true, rank:i+1})).join('') ||
           '<div class="empty" style="grid-column:1/-1"><div class="empty-icon">🤔</div><h3>No recommendations found</h3><p>Try a different mood or restaurant</p></div>'}
         </div>`;
       bindCartButtons(document.getElementById('recGrid'));

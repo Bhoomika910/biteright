@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>BiteRight — Menu</title>
-<link rel="stylesheet" href="/static/style.css"/>
+<link rel="stylesheet" href="/static/style.css?v=7"/>
 <style>
 .menu-hero { background:linear-gradient(135deg,var(--bg2),var(--surface)); border-bottom:1px solid var(--border); padding:40px 24px 32px; }
 .menu-hero-inner { max-width:1200px;margin:0 auto; }
@@ -63,6 +63,7 @@
       <h3>Categories</h3>
       <div id="catLinks"></div>
       <a id="recLink" href="#" class="rec-link">🤖 Get AI Picks →</a>
+      <div id="reviews-root" class="mt-24"></div>
     </aside>
     <div>
       <div class="search-bar mb-24">
@@ -78,8 +79,8 @@
 
 <div id="float-root"></div>
 <script type="module">
-import { renderNav, renderFloatCart, Cart, bindCartButtons, dishCard, User, toast, requireAuth } from '/static/app.js';
-import { getMenu } from '/static/api.js';
+import { renderNav, renderFloatCart, Cart, bindCartButtons, dishCard, User, toast, requireAuth } from '/static/app.js?v=7';
+import { getMenu, getReviews } from '/static/api.js?v=7';
 
 document.getElementById('nav-root').innerHTML   = renderNav('/restaurants.html');
 document.getElementById('float-root').innerHTML = renderFloatCart();
@@ -103,26 +104,48 @@ document.getElementById('recLink').href = userId
 const grid = document.getElementById('menuGrid');
 let allDishes = [];
 
-function renderDishes(dishes) {
-  grid.innerHTML = dishes.map(d => dishCard(d, restId, restName, {showAllergy:true})).join('') ||
-    `<div class="empty" style="grid-column:1/-1"><div class="empty-icon">🍽️</div><h3>No dishes match</h3></div>`;
+function isVeg(dish) {
+  // Use the reliable boolean from database
+  return dish.is_veg === true;
+}
+
+function renderDishes(dishes, filter = 'all') {
+  if (filter === 'all' && dishes.length > 0) {
+    const veg    = dishes.filter(d => isVeg(d));
+    const nonveg = dishes.filter(d => !isVeg(d));
+    
+    let html = '';
+    if (veg.length) {
+      html += `<div style="grid-column:1/-1; margin: 20px 0 10px 0;"><h3 style="font-family:'Syne'; border-left:4px solid #2ECC71; padding-left:12px;">🌿 Vegetarian Delights</h3></div>`;
+      html += veg.map(d => dishCard(d, restId, restName, {showAllergy:true})).join('');
+    }
+    if (nonveg.length) {
+      html += `<div style="grid-column:1/-1; margin: 30px 0 10px 0;"><h3 style="font-family:'Syne'; border-left:4px solid #E74C3C; padding-left:12px;">🍖 Non-Vegetarian Specials</h3></div>`;
+      html += nonveg.map(d => dishCard(d, restId, restName, {showAllergy:true})).join('');
+    }
+    grid.innerHTML = html;
+  } else {
+    grid.innerHTML = dishes.map(d => dishCard(d, restId, restName, {showAllergy:true})).join('') ||
+      `<div class="empty" style="grid-column:1/-1"><div class="empty-icon">🍽️</div><h3>No dishes match</h3></div>`;
+  }
   bindCartButtons(grid);
 }
 
 try {
   allDishes = await getMenu(restId);
 
-  const cats     = [...new Set(allDishes.map(d => d.mood_tags).filter(Boolean))];
+  // Use category_name instead of mood_tags
+  const cats     = [...new Set(allDishes.map(d => d.category_name).filter(Boolean))];
   const catLinks = document.getElementById('catLinks');
   catLinks.innerHTML = `<button class="cat-link active" data-cat="all">All items (${allDishes.length})</button>` +
-    cats.map(c => `<button class="cat-link" data-cat="${c}">${c} (${allDishes.filter(d=>d.mood_tags===c).length})</button>`).join('');
+    cats.map(c => `<button class="cat-link" data-cat="${c}">${c} (${allDishes.filter(d=>d.category_name===c).length})</button>`).join('');
 
   catLinks.addEventListener('click', e => {
     const btn = e.target.closest('.cat-link'); if(!btn) return;
     document.querySelectorAll('.cat-link').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     const cat = btn.dataset.cat;
-    renderDishes(cat === 'all' ? allDishes : allDishes.filter(d => d.mood_tags === cat));
+    renderDishes(cat === 'all' ? allDishes : allDishes.filter(d => d.category_name === cat));
   });
 
   renderDishes(allDishes);
@@ -136,17 +159,41 @@ document.getElementById('filterBar').addEventListener('click', e => {
   btn.classList.add('active');
   const f = btn.dataset.filter;
   let filtered = allDishes;
-  if (f==='veg')    filtered = allDishes.filter(d => (d.diet_tags||'').toLowerCase().includes('veg'));
-  if (f==='nonveg') filtered = allDishes.filter(d => !(d.diet_tags||'').toLowerCase().includes('veg'));
-  renderDishes(filtered);
+  if (f==='veg')    filtered = allDishes.filter(d => isVeg(d));
+  if (f==='nonveg') filtered = allDishes.filter(d => !isVeg(d));
+  renderDishes(filtered, f);
 });
-
 document.getElementById('menuSearch').addEventListener('input', function() {
   const q = this.value.toLowerCase();
   renderDishes(allDishes.filter(d =>
     (d.name||'').toLowerCase().includes(q) || (d.ingredients||'').toLowerCase().includes(q)
   ));
 });
+
+// ── REVIEWS ──────────────────────────────────────────────────────────────────
+async function loadReviews() {
+  const revRoot = document.getElementById('reviews-root');
+  try {
+    const reviews = await getReviews(restId);
+    if (!reviews.length) return;
+    
+    revRoot.innerHTML = `
+      <h3 style="margin-top:0">Recent Reviews</h3>
+      ${reviews.slice(0, 5).map(r => `
+        <div class="review-item fade-up">
+          <div class="rev-top">
+            <div class="rev-user">${r.user_name || 'Happy Customer'}</div>
+            <div class="rev-rating">⭐ ${r.rating}</div>
+          </div>
+          <div class="rev-text">"${r.comment}"</div>
+        </div>
+      `).join('')}
+    `;
+  } catch (e) {
+    console.error('Failed to load reviews', e);
+  }
+}
+loadReviews();
 </script>
 </body>
 </html>

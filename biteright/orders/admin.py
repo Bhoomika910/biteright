@@ -1,7 +1,13 @@
 from django.contrib import admin
-from .models import Order
+from .models import Order, OrderItem
+
+class OrderItemInline(admin.TabularInline):
+    model = OrderItem
+    extra = 0
+    readonly_fields = ('price',)
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    # FIX Bug 5: was ('id','user','total_amount','order_time') — old field names
-    list_display = ('id', 'user', 'total_price', 'status', 'created_at')
+    list_display = ('id', 'user', 'restaurant', 'items_price', 'total_price', 'status', 'payment_status', 'created_at')
+    list_filter = ('status', 'payment_status', 'created_at', 'restaurant')
+    inlines = [OrderItemInline]
